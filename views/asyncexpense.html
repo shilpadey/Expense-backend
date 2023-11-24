@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Expense tracker</title>
+    <style>
+        fieldset {
+             background-color: #eeeeee;
+        }
+
+        legend {
+           background-color: gray;
+           color: white;
+           padding: 5px 10px;
+        }
+    </style>
+</head>
+<body>
+    <form id="mytracker" method="post" action="/add-expense" onsubmit="addExpense(event)">
+        <fieldset>
+            <legend>Expenses</legend>
+            <label for=":"> ExpenseAmount</label><br>
+            <input type="number" id="amount" name="amount" required><br><br>
+            <label for="description">Spend on</label><br>
+            <input type="text" id="description" name="description" required><br><br>
+            <label for="expenses">Choose a category:</label><br>
+            <select id="category" name="category">
+                <option value="food">Food</option>
+                <option value="fuel">Fuel</option>
+                <option value="movie">Movie</option>
+                <option value="electricity">Electricity</option>
+                <option value="shopping">Shopping</option>
+            </select><br><br>
+            <input type="submit" value="Add Expense"> 
+        </fieldset> 
+    </form>
+    <ul id="lists"></ul>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.27.2/axios.min.js"></script>
+    <script>
+        async function addExpense(event){
+            event.preventDefault();
+            try{
+                const amount = event.target.amount.value;
+                const description = event.target.description.value;
+                const category = event.target.category.value;
+
+                const expenseObj = {
+                    amount,
+                    description,
+                    category
+                };
+
+                let postExpenses = await axios.post("http://localhost:3000/add-expense",expenseObj);
+                if(postExpenses.status === 201){
+                    shownewusers(postExpenses.data);
+                }  
+            }catch{
+                console.log("post error")
+            }
+
+            //amount.value = "";
+            //description.value = "";
+            //category.value = "";
+
+        };
+
+        window.addEventListener('DOMContentLoaded', async() => {
+            try{
+                let getData = await axios.get("http://localhost:3000/get-expense")
+                if(getData.status === 200){ 
+                    console.log(getData)
+
+                    for(var i = 0; i < getData.data.length; i++){
+                        shownewusers(getData.data[i]);
+                    }
+                }
+            }catch{
+                console.log('get error');
+            }     
+        });
+
+        function shownewusers(expense){
+
+            const parentNode = document.getElementById('lists');
+            const childHTML = `<li id = ${expense.id}> ${expense.amount} - ${expense.category} - ${expense.description}
+                        <button onclick = deleteExpenses('${expense.id}')>Delete</button>
+                        <button onclick = editExpensesDetails('${expense.category}','${expense.amount}','${expense.description}','${expense.id}')>Edit</button>
+                        </li>`
+            parentNode.innerHTML = parentNode.innerHTML+childHTML;
+        };
+
+        function editExpensesDetails(category,amount,description,expenseId){
+            document.getElementById('category').value = category;
+            document.getElementById('amount').value = amount;
+            document.getElementById('description').value = description;
+
+            deleteExpenses(expenseId);
+        };
+
+        async function deleteExpenses(expenseId){
+            try{
+                let response = await axios.delete(`http://localhost:3000/delete-expense/${expenseId}`);
+                if (response.status === 200) {
+                    removeExpensesFromScreen(expenseId);
+                } else {
+                     console.log("Delete request was not successful. Status: ", response.status);
+                }
+            }catch{
+                 console.log("delete error")
+            }
+        };
+
+        function removeExpensesFromScreen(expenseId){
+            const parentNode = document.getElementById('lists');
+            const childNodeToBeDeleted = document.getElementById(expenseId);
+            if(childNodeToBeDeleted) {
+                parentNode.removeChild(childNodeToBeDeleted)
+            }
+        } 
+
+    </script>
+</body>
+</html>
