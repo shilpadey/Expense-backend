@@ -1,45 +1,60 @@
 const Expense = require('../models/expense');
+const User = require('../models/user');
 
-exports.getExpense = async(req, res, next) => {
-    try {
-        const expenses = await Expense.findAll();
-        res.json(expenses);
-    } catch (err) {
-        console.log(err);
-    }
+const getExpense = (req, res, next) => {
+    
+         req.user.getExpense().then(expenses => {
+            return res.status(200).json({expenses, success: true});
+         }).catch ((err)=> {console.log(err)})
+    
 };
 
-exports.addExpense = (req, res, next) => {
+const addExpense = (req, res, next) => {
         const amount = req.body.amount;
         const description = req.body.description;
         const category = req.body.category;
 
-        /*if(amount == '' || description == '' || category == ''){
-            res.json({ error: 'Please fill details'});
+        /*try {
+            const expense = await req.user.createExpense({
+              amount: amount,
+              description: description,
+              category: category,
+            });
+            console.log('Record Added');
+            res.json(expense);
+        } catch (error) {
+            console.log(error);
+            res.json({});
         }*/
 
-        Expense.create({
+
+        req.user.createExpense({
             amount: amount,
             description: description,
             category: category,
         })
         .then((result) => {
             console.log(result)
-            res.status(201).json(result);
+            return res.status(201).json({result, success: true});
         }).catch((err)=> {
-        console.log(err);
+            return res.status(403).json({success: false, error: err});
         })
 };
 
-exports.deleteExpense = async(req, res, next) => {
-    try {
+const deleteExpense = (req, res, next) => {
+    t
         const expenseId = req.params.expenseId;
-        const noOfRows = await Expense.destroy({where: {id: expenseId }})
-        if(noOfRows === 0) {
+        Expense.destroy({where: {id: expenseId }}).then(() => {
+            return res.status(204).json({success: true, message: "Delete Successfully"});
+        }). catch((err) =>{
+            console.log(err);
             res.status(404).json({success: false, message: 'You cant delete expesnes of others'});
-        }
-
-        return res.sendStatus(200);
-    }catch(err) {console.log(err)};
+        });
     
+}
+
+module.exports = {
+    getExpense,
+    addExpense,
+    deleteExpense
 }

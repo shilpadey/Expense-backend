@@ -1,10 +1,13 @@
 
-async function addExpense(event){
+const token = localStorage.getItem('token');
+
+function addExpense(event){
     event.preventDefault();
-    try{
-        const amount = event.target.amount.value;
-        const description = event.target.description.value;
-        const category = event.target.category.value;
+    const form = new FormData(event.target);
+    
+        const amount = form.get("amount");
+        const description = form.get("description");
+        const category = form.get("category");
 
         const expenseObj = {
             amount,
@@ -12,43 +15,56 @@ async function addExpense(event){
             category
         };
 
-        let postExpenses = await axios.post("http://localhost:4000/add-expense",expenseObj);
-        if(postExpenses.status === 201){
-            shownewusers(postExpenses.data);
-        }  
-    }catch{
-        console.log("post error")
-    }
+        axios.post("http://localhost:4000/expense/add-expense",expenseObj,
+        {
+            headers: { Authorization: token }
+        }).then(response => {
+            if(response.status === 201){
+                    shownewExpenses(response.data.expense);
+            }else{
+                throw new Error("Something went wrong. Couldn't create new expense")
+            }
+        }).cath(err => console.log('error'));
+        
+    
 
-    amount.value = "";
-    description.value = "";
-    category.value = "";
+    //amount = "";
+    //description = "";
+    //category.value = "";
 
 };
 
-window.addEventListener('DOMContentLoaded', async() => {
-    try{
-        let getData = await axios.get("http://localhost:4000/get-expense")
-        if(getData.status === 200){ 
-            console.log(getData)
-
-            for(var i = 0; i < getData.data.length; i++){
-                shownewusers(getData.data[i]);
+window.addEventListener('DOMContentLoaded', () => {
+    
+        axios.get("http://localhost:4000/expense/get-expense",{
+            headers: { Authorization: token}
+        }).then((response )=>{
+            if(response.status === 200){
+                response.data.expenses.forEach(expense => {
+                    shownewExpenses(expense);
+                });
+            }else{
+                throw new Error("couldn't get the expense");
             }
-        }
-    }catch{
-        console.log('get error');
-    }     
+        })
+        
 });
 
-function shownewusers(expense){
+function shownewExpenses(expense){
 
-    const parentNode = document.getElementById('lists');
-    const childHTML = `<li id = ${expense.id}> ${expense.amount} - ${expense.category} - ${expense.description}
-                <button onclick = deleteExpenses('${expense.id}')>Delete</button>
-                <button onclick = editExpensesDetails('${expense.category}','${expense.amount}','${expense.description}','${expense.id}')>Edit</button>
-                </li>`
-    parentNode.innerHTML = parentNode.innerHTML+childHTML;
+    const tbody = document.getElementById('lists');
+    const newRow = `
+        <tr id="${expense.id}">
+            <td>${expense.amount}</td>
+            <td>${expense.description}</td>
+            <td>${expense.category}</td>
+            <td>
+                <button onclick="deleteExpenses('${expense.id}')">Delete</button>
+                <button onclick="editExpensesDetails('${expense.category}','${expense.amount}','${expense.description}','${expense.id}')">Edit</button>
+            </td>
+        </tr>
+    `;
+    tbody.insertAdjacentHTML('beforeend', newRow);
 };
 
 function editExpensesDetails(category,amount,description,expenseId){
@@ -59,17 +75,21 @@ function editExpensesDetails(category,amount,description,expenseId){
     deleteExpenses(expenseId);
 };
 
-async function deleteExpenses(expenseId){
-    try{
-        let response = await axios.delete(`http://localhost:4000/delete-expense/${expenseId}`);
-        if (response.status === 200) {
-            removeExpensesFromScreen(expenseId);
-        } else {
-             console.log("Delete request was not successful. Status: ", response.status);
-        }
-    }catch{
-         console.log("delete error")
-    }
+ function deleteExpenses(expenseId){
+    
+        axios.delete(`http://localhost:4000/expense/delete-expense/${expenseId}`,
+        {
+            headers: { Authorization: token}
+        }).then((response) => {
+            if (response.status === 204) {
+                removeExpensesFromScreen(expenseId);
+            } else {
+                 console.log("Delete request was not successful. Status: ", response.status);
+            }
+        }).catch((err) => {
+            console.log("delete error");
+        })
+
 };
 
 function removeExpensesFromScreen(expenseId){
@@ -79,3 +99,4 @@ function removeExpensesFromScreen(expenseId){
         parentNode.removeChild(childNodeToBeDeleted)
     }
 } 
+

@@ -9,6 +9,8 @@ document.getElementById("loginForm").addEventListener("submit", function(event) 
     axios.post("http://localhost:4000/user/login", requestData)
     .then(response => {
         alert(response.data.message);
+        const token = response.data.token;
+        localStorage.setItem("token",token)
         // redirect to another page after successful login
          window.location.href = "./asyncexpense.html";
     })
